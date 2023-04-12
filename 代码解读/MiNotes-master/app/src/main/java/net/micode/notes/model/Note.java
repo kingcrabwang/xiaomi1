@@ -35,14 +35,14 @@ import java.util.ArrayList;
 
 
 public class Note {
-    private ContentValues mNoteDiffValues;
-    private NoteData mNoteData;
-    private static final String TAG = "Note";
+    private ContentValues mNoteDiffValues; // 声明一个 ContentValues 对象，用于存储 Note 对象的差异值
+    private NoteData mNoteData; // 声明一个 NoteData 对象，用于存储 Note 数据
+    private static final String TAG = "Note"; // 声明一个 TAG 常量，用于在日志中输出信息
     /**
-     * Create a new note id for adding a new note to databases
+     * 为添加新笔记创建一个新的笔记ID
      */
     public static synchronized long getNewNoteId(Context context, long folderId) {
-        // Create a new note in the database
+        // 在数据库中创建一个新的笔记
         ContentValues values = new ContentValues();
         long createdTime = System.currentTimeMillis();
         values.put(NoteColumns.CREATED_DATE, createdTime);
@@ -54,59 +54,61 @@ public class Note {
 
         long noteId = 0;
         try {
-            noteId = Long.valueOf(uri.getPathSegments().get(1));
+            noteId = Long.valueOf(uri.getPathSegments().get(1)); // 从 Uri 中获取新创建的笔记 ID
         } catch (NumberFormatException e) {
-            Log.e(TAG, "Get note id error :" + e.toString());
+            Log.e(TAG, "Get note id error :" + e.toString()); // 输出错误信息
             noteId = 0;
         }
-        if (noteId == -1) {
+        if (noteId == -1) { // 如果笔记 ID 为 -1，则表示创建笔记失败，抛出异常
             throw new IllegalStateException("Wrong note id:" + noteId);
         }
-        return noteId;
+        return noteId; // 返回新创建的笔记 ID
     }
 
-    public Note() {
-        mNoteDiffValues = new ContentValues();
-        mNoteData = new NoteData();
+    public Note() { // Note 类的构造函数
+        mNoteDiffValues = new ContentValues(); // 初始化 ContentValues 对象
+        mNoteData = new NoteData(); // 初始化 NoteData 对象
     }
 
-    public void setNoteValue(String key, String value) {
-        mNoteDiffValues.put(key, value);
-        mNoteDiffValues.put(NoteColumns.LOCAL_MODIFIED, 1);
-        mNoteDiffValues.put(NoteColumns.MODIFIED_DATE, System.currentTimeMillis());
+    public void setNoteValue(String key, String value) { // 设置笔记值的方法
+        mNoteDiffValues.put(key, value); // 存储键值对到 ContentValues 对象
+        mNoteDiffValues.put(NoteColumns.LOCAL_MODIFIED, 1); // 将 LOCAL_MODIFIED 标志设置为 1
+        mNoteDiffValues.put(NoteColumns.MODIFIED_DATE, System.currentTimeMillis()); // 将笔记的修改时间设置为当前时间
     }
+
 
     public void setTextData(String key, String value) {
-        mNoteData.setTextData(key, value);
+        mNoteData.setTextData(key, value); // 设置笔记的文本数据
     }
 
     public void setTextDataId(long id) {
-        mNoteData.setTextDataId(id);
+        mNoteData.setTextDataId(id); // 设置笔记的文本数据ID
     }
 
     public long getTextDataId() {
-        return mNoteData.mTextDataId;
+        return mNoteData.mTextDataId; // 获取笔记的文本数据ID
     }
 
     public void setCallDataId(long id) {
-        mNoteData.setCallDataId(id);
+        mNoteData.setCallDataId(id); // 设置笔记的电话数据ID
     }
 
     public void setCallData(String key, String value) {
-        mNoteData.setCallData(key, value);
+        mNoteData.setCallData(key, value); // 设置笔记的电话数据
     }
 
     public boolean isLocalModified() {
         return mNoteDiffValues.size() > 0 || mNoteData.isLocalModified();
+        // 检查笔记是否被本地修改过
     }
 
     public boolean syncNote(Context context, long noteId) {
         if (noteId <= 0) {
-            throw new IllegalArgumentException("Wrong note id:" + noteId);
+            throw new IllegalArgumentException("Wrong note id:" + noteId); // 如果笔记ID非法，则抛出异常
         }
 
         if (!isLocalModified()) {
-            return true;
+            return true; // 如果笔记没有被本地修改过，则直接返回 true
         }
 
         /**
@@ -117,94 +119,84 @@ public class Note {
         if (context.getContentResolver().update(
                 ContentUris.withAppendedId(Notes.CONTENT_NOTE_URI, noteId), mNoteDiffValues, null,
                 null) == 0) {
-            Log.e(TAG, "Update note error, should not happen");
+            Log.e(TAG, "Update note error, should not happen"); // 更新笔记失败，记录错误日志
             // Do not return, fall through
         }
-        mNoteDiffValues.clear();
+        mNoteDiffValues.clear(); // 清空笔记的差异值
 
         if (mNoteData.isLocalModified()
                 && (mNoteData.pushIntoContentResolver(context, noteId) == null)) {
-            return false;
+            return false; // 如果笔记的数据被修改且同步到 ContentResolver 失败，则返回 false
         }
 
-        return true;
+        return true; // 成功同步笔记数据，则返回 true
     }
 
+
     private class NoteData {
-        private long mTextDataId;
-
-        private ContentValues mTextDataValues;
-
-        private long mCallDataId;
-
-        private ContentValues mCallDataValues;
-
-        private static final String TAG = "NoteData";
-
-        public NoteData() {
-            mTextDataValues = new ContentValues();
-            mCallDataValues = new ContentValues();
-            mTextDataId = 0;
-            mCallDataId = 0;
+        private long mTextDataId; // 文本数据的 ID
+        private ContentValues mTextDataValues; // 存储文本数据的 ContentValues
+        private long mCallDataId; // 通话数据的 ID
+        private ContentValues mCallDataValues; // 存储通话数据的 ContentValues
+        private static final String TAG = "NoteData"; // 日志标签
+        public NoteData() { // 构造函数
+            mTextDataValues = new ContentValues(); // 初始化文本数据的 ContentValues
+            mCallDataValues = new ContentValues(); // 初始化通话数据的 ContentValues
+            mTextDataId = 0; // 初始化文本数据的 ID
+            mCallDataId = 0; // 初始化通话数据的 ID
         }
-
-        boolean isLocalModified() {
+        boolean isLocalModified() { // 判断是否有本地修改
             return mTextDataValues.size() > 0 || mCallDataValues.size() > 0;
         }
-
-        void setTextDataId(long id) {
+        void setTextDataId(long id) { // 设置文本数据的 ID
             if(id <= 0) {
                 throw new IllegalArgumentException("Text data id should larger than 0");
             }
             mTextDataId = id;
         }
-
-        void setCallDataId(long id) {
+        void setCallDataId(long id) { // 设置通话数据的 ID
             if (id <= 0) {
                 throw new IllegalArgumentException("Call data id should larger than 0");
             }
             mCallDataId = id;
         }
-
-        void setCallData(String key, String value) {
+        void setCallData(String key, String value) { // 设置通话数据的键值对
             mCallDataValues.put(key, value);
             mNoteDiffValues.put(NoteColumns.LOCAL_MODIFIED, 1);
             mNoteDiffValues.put(NoteColumns.MODIFIED_DATE, System.currentTimeMillis());
         }
-
-        void setTextData(String key, String value) {
+        void setTextData(String key, String value) { // 设置文本数据的键值对
             mTextDataValues.put(key, value);
             mNoteDiffValues.put(NoteColumns.LOCAL_MODIFIED, 1);
             mNoteDiffValues.put(NoteColumns.MODIFIED_DATE, System.currentTimeMillis());
         }
-
         Uri pushIntoContentResolver(Context context, long noteId) {
-            /**
-             * Check for safety
-             */
-            if (noteId <= 0) {
-                throw new IllegalArgumentException("Wrong note id:" + noteId);
-            }
+/*
 
+检查是否安全
+*/
+            if (noteId <= 0) {
+                throw new IllegalArgumentException("错误的笔记ID：" + noteId);
+            }
             ArrayList<ContentProviderOperation> operationList = new ArrayList<ContentProviderOperation>();
             ContentProviderOperation.Builder builder = null;
 
             if(mTextDataValues.size() > 0) {
+// 插入文本数据
                 mTextDataValues.put(DataColumns.NOTE_ID, noteId);
                 if (mTextDataId == 0) {
                     mTextDataValues.put(DataColumns.MIME_TYPE, TextNote.CONTENT_ITEM_TYPE);
-                    Uri uri = context.getContentResolver().insert(Notes.CONTENT_DATA_URI,
-                            mTextDataValues);
+                    Uri uri = context.getContentResolver().insert(Notes.CONTENT_DATA_URI, mTextDataValues);
                     try {
                         setTextDataId(Long.valueOf(uri.getPathSegments().get(1)));
                     } catch (NumberFormatException e) {
-                        Log.e(TAG, "Insert new text data fail with noteId" + noteId);
+                        Log.e(TAG, "插入新的文本数据失败，笔记ID为" + noteId);
                         mTextDataValues.clear();
                         return null;
                     }
                 } else {
-                    builder = ContentProviderOperation.newUpdate(ContentUris.withAppendedId(
-                            Notes.CONTENT_DATA_URI, mTextDataId));
+// 更新文本数据
+                    builder = ContentProviderOperation.newUpdate(ContentUris.withAppendedId(Notes.CONTENT_DATA_URI, mTextDataId));
                     builder.withValues(mTextDataValues);
                     operationList.add(builder.build());
                 }
@@ -212,21 +204,21 @@ public class Note {
             }
 
             if(mCallDataValues.size() > 0) {
+// 插入通话数据
                 mCallDataValues.put(DataColumns.NOTE_ID, noteId);
                 if (mCallDataId == 0) {
                     mCallDataValues.put(DataColumns.MIME_TYPE, CallNote.CONTENT_ITEM_TYPE);
-                    Uri uri = context.getContentResolver().insert(Notes.CONTENT_DATA_URI,
-                            mCallDataValues);
+                    Uri uri = context.getContentResolver().insert(Notes.CONTENT_DATA_URI, mCallDataValues);
                     try {
                         setCallDataId(Long.valueOf(uri.getPathSegments().get(1)));
                     } catch (NumberFormatException e) {
-                        Log.e(TAG, "Insert new call data fail with noteId" + noteId);
+                        Log.e(TAG, "插入新的通话数据失败，笔记ID为" + noteId);
                         mCallDataValues.clear();
                         return null;
                     }
                 } else {
-                    builder = ContentProviderOperation.newUpdate(ContentUris.withAppendedId(
-                            Notes.CONTENT_DATA_URI, mCallDataId));
+// 更新通话数据
+                    builder = ContentProviderOperation.newUpdate(ContentUris.withAppendedId(Notes.CONTENT_DATA_URI, mCallDataId));
                     builder.withValues(mCallDataValues);
                     operationList.add(builder.build());
                 }
