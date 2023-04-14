@@ -429,167 +429,231 @@ public class GTaskClient {
     }
 
     /******/
+    /**
+     * 创建任务
+     * @param task 任务对象
+     * @throws NetworkFailureException 网络异常
+     */
     public void createTask(Task task) throws NetworkFailureException {
+        // 提交更新
         commitUpdate();
         try {
+            // 创建JSONObject对象
             JSONObject jsPost = new JSONObject();
+            // 创建JSONArray对象
             JSONArray actionList = new JSONArray();
 
-            // action_list
+            // 将新建任务的操作添加到actionList中
             actionList.put(task.getCreateAction(getActionId()));
+            // 将actionList添加到JSONObject中
             jsPost.put(GTaskStringUtils.GTASK_JSON_ACTION_LIST, actionList);
 
-            // client_version
+            // 将客户端版本号添加到JSONObject中
             jsPost.put(GTaskStringUtils.GTASK_JSON_CLIENT_VERSION, mClientVersion);
 
-            // post
+            // 发送post请求，并获取响应数据
             JSONObject jsResponse = postRequest(jsPost);
+            // 获取响应结果中的第一个JSONObject对象
             JSONObject jsResult = (JSONObject) jsResponse.getJSONArray(
                     GTaskStringUtils.GTASK_JSON_RESULTS).get(0);
+            // 将新建任务的gid设置为返回结果中的new_id
             task.setGid(jsResult.getString(GTaskStringUtils.GTASK_JSON_NEW_ID));
 
         } catch (JSONException e) {
+            // 记录异常日志
             Log.e(TAG, e.toString());
             e.printStackTrace();
+            // 抛出操作失败异常
             throw new ActionFailureException("create task: handing jsonobject failed");
         }
     }
 
+    /**
+     * 创建任务列表
+     * @param tasklist 任务列表对象
+     * @throws NetworkFailureException 网络异常
+     */
     public void createTaskList(TaskList tasklist) throws NetworkFailureException {
+        // 提交更新
         commitUpdate();
         try {
+            // 创建JSONObject对象
             JSONObject jsPost = new JSONObject();
+            // 创建JSONArray对象
             JSONArray actionList = new JSONArray();
 
-            // action_list
+            // 将新建任务列表的操作添加到actionList中
             actionList.put(tasklist.getCreateAction(getActionId()));
+            // 将actionList添加到JSONObject中
             jsPost.put(GTaskStringUtils.GTASK_JSON_ACTION_LIST, actionList);
 
-            // client version
+            // 将客户端版本号添加到JSONObject中
             jsPost.put(GTaskStringUtils.GTASK_JSON_CLIENT_VERSION, mClientVersion);
 
-            // post
+            // 发送post请求，并获取响应数据
             JSONObject jsResponse = postRequest(jsPost);
+            // 获取响应结果中的第一个JSONObject对象
             JSONObject jsResult = (JSONObject) jsResponse.getJSONArray(
                     GTaskStringUtils.GTASK_JSON_RESULTS).get(0);
+            // 将新建任务列表的gid设置为返回结果中的new_id
             tasklist.setGid(jsResult.getString(GTaskStringUtils.GTASK_JSON_NEW_ID));
 
         } catch (JSONException e) {
+            // 记录异常日志
             Log.e(TAG, e.toString());
             e.printStackTrace();
+            // 抛出操作失败异常
             throw new ActionFailureException("create tasklist: handing jsonobject failed");
         }
     }
 
+
+    /**
+     * 提交更新
+     * @throws NetworkFailureException 网络异常
+     */
     public void commitUpdate() throws NetworkFailureException {
+        // 如果有更新操作
         if (mUpdateArray != null) {
             try {
+                // 创建JSONObject对象
                 JSONObject jsPost = new JSONObject();
 
-                // action_list
+                // 将更新操作添加到actionList中
                 jsPost.put(GTaskStringUtils.GTASK_JSON_ACTION_LIST, mUpdateArray);
 
-                // client_version
+                // 将客户端版本号添加到JSONObject中
                 jsPost.put(GTaskStringUtils.GTASK_JSON_CLIENT_VERSION, mClientVersion);
 
+                // 发送post请求
                 postRequest(jsPost);
+                // 更新操作数组置空
                 mUpdateArray = null;
             } catch (JSONException e) {
+                // 记录异常日志
                 Log.e(TAG, e.toString());
                 e.printStackTrace();
+                // 抛出操作失败异常
                 throw new ActionFailureException("commit update: handing jsonobject failed");
             }
         }
     }
 
+
+    /**
+     * 添加更新节点到更新数组中。
+     * @param node 要添加的节点。
+     * @throws NetworkFailureException 网络故障异常。
+     */
     public void addUpdateNode(Node node) throws NetworkFailureException {
         if (node != null) {
-            // too many update items may result in an error
-            // set max to 10 items
+            // 如果更新数组中的项目太多可能会导致错误
+            // 将最大项设置为10项
             if (mUpdateArray != null && mUpdateArray.length() > 10) {
-                commitUpdate();
+                commitUpdate(); // 提交更新数组
             }
 
             if (mUpdateArray == null)
-                mUpdateArray = new JSONArray();
-            mUpdateArray.put(node.getUpdateAction(getActionId()));
+                mUpdateArray = new JSONArray(); // 创建一个新的JSONArray
+            mUpdateArray.put(node.getUpdateAction(getActionId())); // 将节点的更新操作添加到JSONArray中
         }
     }
 
+    /**
+     * 移动任务到指定的父任务列表中。
+     * @param task 要移动的任务。
+     * @param preParent 移动前的父任务列表。
+     * @param curParent 移动后的父任务列表。
+     * @throws NetworkFailureException 网络故障异常。
+     */
     public void moveTask(Task task, TaskList preParent, TaskList curParent)
             throws NetworkFailureException {
-        commitUpdate();
+        commitUpdate(); // 提交更新数组
         try {
-            JSONObject jsPost = new JSONObject();
+            JSONObject jsPost = new JSONObject(); // 创建一个新的JSONObject
             JSONArray actionList = new JSONArray();
             JSONObject action = new JSONObject();
 
             // action_list
             action.put(GTaskStringUtils.GTASK_JSON_ACTION_TYPE,
-                    GTaskStringUtils.GTASK_JSON_ACTION_TYPE_MOVE);
-            action.put(GTaskStringUtils.GTASK_JSON_ACTION_ID, getActionId());
-            action.put(GTaskStringUtils.GTASK_JSON_ID, task.getGid());
+                    GTaskStringUtils.GTASK_JSON_ACTION_TYPE_MOVE); // 设置操作类型为移动
+            action.put(GTaskStringUtils.GTASK_JSON_ACTION_ID, getActionId()); // 设置操作ID
+            action.put(GTaskStringUtils.GTASK_JSON_ID, task.getGid()); // 设置任务ID
             if (preParent == curParent && task.getPriorSibling() != null) {
-                // put prioring_sibing_id only if moving within the tasklist and
-                // it is not the first one
+                // 如果在同一个任务列表中移动且不是第一个，则设置prioring_sibing_id
                 action.put(GTaskStringUtils.GTASK_JSON_PRIOR_SIBLING_ID, task.getPriorSibling());
             }
-            action.put(GTaskStringUtils.GTASK_JSON_SOURCE_LIST, preParent.getGid());
-            action.put(GTaskStringUtils.GTASK_JSON_DEST_PARENT, curParent.getGid());
+            action.put(GTaskStringUtils.GTASK_JSON_SOURCE_LIST, preParent.getGid()); // 设置移动前的任务列表ID
+            action.put(GTaskStringUtils.GTASK_JSON_DEST_PARENT, curParent.getGid()); // 设置移动后的父任务列表ID
             if (preParent != curParent) {
-                // put the dest_list only if moving between tasklists
+                // 如果在不同的任务列表中移动，则设置dest_list
                 action.put(GTaskStringUtils.GTASK_JSON_DEST_LIST, curParent.getGid());
             }
-            actionList.put(action);
+            actionList.put(action); // 将操作添加到操作列表中
             jsPost.put(GTaskStringUtils.GTASK_JSON_ACTION_LIST, actionList);
 
             // client_version
-            jsPost.put(GTaskStringUtils.GTASK_JSON_CLIENT_VERSION, mClientVersion);
+            jsPost.put(GTaskStringUtils.GTASK_JSON_CLIENT_VERSION, mClientVersion); // 设置客户端版本号
 
-            postRequest(jsPost);
+            postRequest(jsPost); // 发送POST请求
 
         } catch (JSONException e) {
             Log.e(TAG, e.toString());
             e.printStackTrace();
-            throw new ActionFailureException("move task: handing jsonobject failed");
+            throw new ActionFailureException("move task: handing jsonobject failed"); // 抛出操作失败异常
         }
     }
 
+    /**
+     * 删除节点。
+     * @param node 要删除的节点。
+     * @throws NetworkFailureException 网络故障异常。
+     */
     public void deleteNode(Node node) throws NetworkFailureException {
-        commitUpdate();
+        commitUpdate(); // 提交更新数组
         try {
-            JSONObject jsPost = new JSONObject();
+            JSONObject jsPost = new JSONObject(); // 创建一个新的JSONObject
             JSONArray actionList = new JSONArray();
 
             // action_list
-            node.setDeleted(true);
-            actionList.put(node.getUpdateAction(getActionId()));
+            node.setDeleted(true); // 设置节点为已删除
+            actionList.put(node.getUpdateAction(getActionId())); // 将节点的更新操作添加到操作列表中
             jsPost.put(GTaskStringUtils.GTASK_JSON_ACTION_LIST, actionList);
 
             // client_version
-            jsPost.put(GTaskStringUtils.GTASK_JSON_CLIENT_VERSION, mClientVersion);
+            jsPost.put(GTaskStringUtils.GTASK_JSON_CLIENT_VERSION, mClientVersion); // 设置客户端版本号
 
-            postRequest(jsPost);
-            mUpdateArray = null;
+            postRequest(jsPost); // 发送POST请求
+            mUpdateArray = null; // 将更新数组设置为null
+
         } catch (JSONException e) {
             Log.e(TAG, e.toString());
             e.printStackTrace();
-            throw new ActionFailureException("delete node: handing jsonobject failed");
+            throw new ActionFailureException("delete node: handing jsonobject failed"); // 抛出操作失败异常
         }
     }
 
+
+    /**
+     * 获取任务列表
+     *
+     * @return 任务列表的JSONArray对象
+     * @throws NetworkFailureException 网络连接异常
+     */
     public JSONArray getTaskLists() throws NetworkFailureException {
+        // 如果未登录，则抛出异常
         if (!mLoggedin) {
             Log.e(TAG, "please login first");
             throw new ActionFailureException("not logged in");
         }
 
         try {
+            // 创建HttpGet对象，用于向服务器发送GET请求
             HttpGet httpGet = new HttpGet(mGetUrl);
             HttpResponse response = null;
             response = mHttpClient.execute(httpGet);
 
-            // get the task list
+            // 获取任务列表
             String resString = getResponseContent(response.getEntity());
             String jsBegin = "_setup(";
             String jsEnd = ")}</script>";
@@ -602,23 +666,34 @@ public class GTaskClient {
             JSONObject js = new JSONObject(jsString);
             return js.getJSONObject("t").getJSONArray(GTaskStringUtils.GTASK_JSON_LISTS);
         } catch (ClientProtocolException e) {
+            // 如果出现ClientProtocolException，则抛出网络连接异常
             Log.e(TAG, e.toString());
             e.printStackTrace();
             throw new NetworkFailureException("gettasklists: httpget failed");
         } catch (IOException e) {
+            // 如果出现IOException，则抛出网络连接异常
             Log.e(TAG, e.toString());
             e.printStackTrace();
             throw new NetworkFailureException("gettasklists: httpget failed");
         } catch (JSONException e) {
+            // 如果出现JSONException，则抛出操作失败异常
             Log.e(TAG, e.toString());
             e.printStackTrace();
             throw new ActionFailureException("get task lists: handing jasonobject failed");
         }
     }
 
+    /**
+     * 根据任务列表ID获取任务列表
+     *
+     * @param listGid 任务列表ID
+     * @return 任务列表的JSONArray对象
+     * @throws NetworkFailureException 网络连接异常
+     */
     public JSONArray getTaskList(String listGid) throws NetworkFailureException {
         commitUpdate();
         try {
+            // 创建JSONObject对象，设置请求参数
             JSONObject jsPost = new JSONObject();
             JSONArray actionList = new JSONArray();
             JSONObject action = new JSONObject();
@@ -633,19 +708,29 @@ public class GTaskClient {
 
             jsPost.put(GTaskStringUtils.GTASK_JSON_CLIENT_VERSION, mClientVersion);
 
+            // 发送POST请求，获取响应JSONObject对象
             JSONObject jsResponse = postRequest(jsPost);
             return jsResponse.getJSONArray(GTaskStringUtils.GTASK_JSON_TASKS);
         } catch (JSONException e) {
+            // 如果出现JSONException，则抛出操作失败异常
             Log.e(TAG, e.toString());
             e.printStackTrace();
             throw new ActionFailureException("get task list: handing jsonobject failed");
         }
     }
 
+    /**
+     * 获取同步账户
+     *
+     * @return 同步账户对象
+     */
     public Account getSyncAccount() {
         return mAccount;
     }
 
+    /**
+     * 重置更新数组
+     */
     public void resetUpdateArray() {
         mUpdateArray = null;
     }
